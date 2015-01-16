@@ -1,6 +1,6 @@
 name := "scala-ssh-shell"
 
-organization := "com.peak6"
+organization := "co.actioniq"
 
 version := "0.0.1-SNAPSHOT"
 
@@ -10,7 +10,7 @@ scalacOptions ++= Vector("-unchecked", "-deprecation", "-Ywarn-all")
 
 javacOptions ++= Vector("-encoding", "UTF-8")
 
-retrieveManaged := true
+//retrieveManaged := true
 
 libraryDependencies <++= (scalaVersion) {
 	(scala) => Seq(
@@ -22,3 +22,38 @@ libraryDependencies <++= (scalaVersion) {
 	"org.apache.sshd" % "sshd-core" % "0.6.0"
 	)}
 
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
+
+publishMavenStyle := true
+
+publishArtifact in Test := false
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <url>https://github.com/ActionIQ/scala-ssh-shell</url>
+  <licenses>
+    <license>
+      <name>Apache</name>
+      <url>https://raw.githubusercontent.com/ActionIQ/scala-ssh-shell/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>git@github.com:ActionIQ/scala-ssh-shell.git</url>
+    <connection>scm:git:git@github.com:ActionIQ/scala-ssh-shell.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>you</id>
+      <name>Your Name</name>
+      <url>http://your.url</url>
+    </developer>
+  </developers>
+)
