@@ -19,7 +19,7 @@ libraryDependencies <++= (scalaVersion) {
 	"org.clapper" %% "grizzled-slf4j" % "1.0.2",
 	"org.slf4j" % "slf4j-simple" % "1.6.4",
 	"org.bouncycastle" % "bcprov-jdk16" % "1.46",
-	"org.apache.sshd" % "sshd-core" % "0.6.0"
+	"org.apache.sshd" % "sshd-core" % "0.14.0"
 	)}
 
 publishTo := {

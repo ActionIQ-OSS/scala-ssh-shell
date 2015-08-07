@@ -18,11 +18,12 @@ package peak6.util
 
 import grizzled.slf4j.Logging
 import java.io.{BufferedReader, InputStreamReader, PrintWriter}
+import org.apache.sshd.common.util.KeyUtils
 import org.apache.sshd.server.session.ServerSession
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.{PasswordAuthenticator, Command}
-import org.apache.sshd.common.Factory
+import org.apache.sshd.common.{FactoryManager, Factory}
 import scala.reflect.Manifest
 import scala.concurrent.ops.spawn
 import scala.tools.nsc.interpreter.TypeStrings
@@ -30,7 +31,7 @@ import scala.tools.nsc.interpreter.TypeStrings
 class ScalaSshShell(val port: Int, val name: String,
                     val user: String, val passwd: String,
                     val keysResourcePath: Option[String],
-                    val idleTimeSec: Int = 60 * 10) extends Shell {
+                    val idleTimeSec: Option[Int] = None) extends Shell {
   lazy val auth =
     new PasswordAuthenticator {
       def authenticate(u: String, p: String, s: ServerSession) =
@@ -43,22 +44,25 @@ trait Shell {
   def name: String
   def keysResourcePath: Option[String]
   def auth: PasswordAuthenticator
-  def idleTimeSec: Int
+  def idleTimeSec: Option[Int]
 
   var bindings: Seq[(String, String, Any)] = IndexedSeq()
 
   def bind[T: Manifest](name: String, value: T) {
-    bindings :+= (name, TypeStrings.fromValue(value), value)
+    bindings :+= Tuple3(name, TypeStrings.fromValue(value), value)
   }
 
   lazy val sshd = {
     val x = org.apache.sshd.SshServer.setUpDefaultServer()
     x.setPort(port)
-    x.setReuseAddress(true)
     x.setPasswordAuthenticator(auth)
     x.setKeyPairProvider(keyPairProvider)
     x.setShellFactory(new ShellFactory)
-    x.getSessionConfig.setBothIdleTime(idleTimeSec)
+    val properties = Option(x.getProperties).getOrElse(new java.util.HashMap[String, String]())
+    idleTimeSec.foreach { sec =>
+      properties.put(FactoryManager.IDLE_TIMEOUT, (sec * 1000).toString)
+    }
+    x.setProperties(properties)
     x
   }
 
@@ -81,9 +85,9 @@ trait Shell {
             val get = doReadKeyPair(in)
           }.get
 
-          override def getKeyTypes() = getKeyType(pair)
+          override def getKeyTypes() = KeyUtils.getKeyType(pair)
           override def loadKey(s:String) = pair
-          def loadKeys() = Array[java.security.KeyPair]()
+          def loadKeys() = java.util.Collections.emptyList[java.security.KeyPair]()
         }
     }.getOrElse(new SimpleGeneratorHostKeyProvider())
 
@@ -157,7 +161,7 @@ trait Shell {
 
             il.printWelcome()
             try {
-              il.intp.initialize()
+              il.intp.initialize({})
               il.intp.beQuietDuring {
                 il.intp.bind("stdout", pw)
                 for ((bname, btype, bval) <- bindings)
