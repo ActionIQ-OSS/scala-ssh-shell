@@ -29,7 +29,8 @@ import scala.tools.nsc.interpreter.TypeStrings
 
 class ScalaSshShell(val port: Int, val name: String,
                     val user: String, val passwd: String,
-                    val keysResourcePath: Option[String]) extends Shell {
+                    val keysResourcePath: Option[String],
+                    val idleTimeSec: Int = 60 * 10) extends Shell {
   lazy val auth =
     new PasswordAuthenticator {
       def authenticate(u: String, p: String, s: ServerSession) =
@@ -42,6 +43,7 @@ trait Shell {
   def name: String
   def keysResourcePath: Option[String]
   def auth: PasswordAuthenticator
+  def idleTimeSec: Int
 
   var bindings: Seq[(String, String, Any)] = IndexedSeq()
 
@@ -56,6 +58,7 @@ trait Shell {
     x.setPasswordAuthenticator(auth)
     x.setKeyPairProvider(keyPairProvider)
     x.setShellFactory(new ShellFactory)
+    x.getSessionConfig.setBothIdleTime(idleTimeSec)
     x
   }
 
