@@ -5,8 +5,6 @@
 # *.[oa]
 .idea
 *~
-.idea
 lib_managed/
 target/
-.idea
 *.iml
