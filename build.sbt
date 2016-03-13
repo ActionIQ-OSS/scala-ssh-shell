@@ -2,7 +2,7 @@ name := "scala-ssh-shell"
 
 organization := "co.actioniq"
 
-version := "0.2-245f9aa8ccef6d88d6390264e5d5b1431cc592c9"
+version := "0.3-b3c7f1afe196bd9ea2f7265d6811b82acdc7d13c"
 
 scalaVersion := "2.10.6"
 
