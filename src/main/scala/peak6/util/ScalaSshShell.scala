@@ -16,16 +16,20 @@
 
 package peak6.util
 
+import java.io.PrintWriter
+
 import grizzled.slf4j.Logging
-import java.io.{BufferedReader, InputStreamReader, PrintWriter}
-import org.apache.sshd.common.util.KeyUtils
-import org.apache.sshd.server.session.ServerSession
+import org.apache.sshd.common.config.keys.KeyUtils
+import org.apache.sshd.common.file.util.ImmutableList
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
+import org.apache.sshd.common.{Factory, FactoryManager}
+import org.apache.sshd.server.Command
+import org.apache.sshd.server.auth.password.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
-import org.apache.sshd.server.{PasswordAuthenticator, Command}
-import org.apache.sshd.common.{FactoryManager, Factory}
-import scala.reflect.Manifest
+import org.apache.sshd.server.session.ServerSession
+
 import scala.concurrent.ops.spawn
+import scala.reflect.Manifest
 import scala.tools.nsc.interpreter.TypeStrings
 
 class ScalaSshShell(val port: Int, val name: String,
@@ -53,16 +57,14 @@ trait Shell {
   }
 
   lazy val sshd = {
-    val x = org.apache.sshd.SshServer.setUpDefaultServer()
+    val x = org.apache.sshd.server.SshServer.setUpDefaultServer()
     x.setPort(port)
     x.setPasswordAuthenticator(auth)
     x.setKeyPairProvider(keyPairProvider)
     x.setShellFactory(new ShellFactory)
-    val properties = Option(x.getProperties).getOrElse(new java.util.HashMap[String, String]())
     idleTimeSec.foreach { sec =>
-      properties.put(FactoryManager.IDLE_TIMEOUT, (sec * 1000).toString)
+      x.getProperties.put(FactoryManager.IDLE_TIMEOUT, (sec * 1000).toString)
     }
-    x.setProperties(properties)
     x
   }
 
@@ -82,10 +84,10 @@ trait Shell {
         new AbstractKeyPairProvider {
           val pair = new SimpleGeneratorHostKeyProvider() {
             val in = classOf[ScalaSshShell].getResourceAsStream(krp)
-            val get = doReadKeyPair(in)
+            val get = doReadKeyPair("", in)
           }.get
 
-          override def getKeyTypes() = KeyUtils.getKeyType(pair)
+          override def getKeyTypes = new ImmutableList(Array(KeyUtils.getKeyType(pair)))
           override def loadKey(s:String) = pair
           def loadKeys() = java.util.Collections.emptyList[java.security.KeyPair]()
         }
@@ -217,8 +219,8 @@ object ScalaSshShell {
     sshd.stop()
   }
 
-  def generateKeys(path: String) {
-    val key = new SimpleGeneratorHostKeyProvider(path)
-    key.loadKeys()
-  }
+//  def generateKeys(path: String) {
+//    val key = new SimpleGeneratorHostKeyProvider(path)
+//    key.loadKeys()
+//  }
 }
