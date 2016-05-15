@@ -12,7 +12,7 @@ class SshILoop(in0: Option[java.io.BufferedReader], out: JPrintWriter)
 extends scala.tools.nsc.interpreter.ILoop(in0, out) {
   var inShutdown = false
 
-  override def loop() {
+  def sshLoop() {
     def readOneLine() = {
       out.flush()
       in readLine prompt

@@ -9,18 +9,8 @@
 
 package scala.tools.jline;
 
-import scala.tools.jline.console.Key;
-import scala.tools.jline.internal.Configuration;
-import scala.tools.jline.internal.ReplayPrefixOneCharInputStream;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-
-import static scala.tools.jline.SshTerminal.UnixKey.*;
-import static scala.tools.jline.console.Key.*;
 
 /**
  * SshTerminal is like UnixTerminal, but it does not execute stty.
@@ -35,15 +25,15 @@ import static scala.tools.jline.console.Key.*;
 public class SshTerminal
     extends TerminalSupport
 {
-    private final ReplayPrefixOneCharInputStream replayStream;
+//    private final ReplayPrefixOneCharInputStream replayStream;
 
-    private final InputStreamReader replayReader;
+//    private final InputStreamReader replayReader;
 
     public SshTerminal() throws Exception {
         super(true);
 
-        this.replayStream = new ReplayPrefixOneCharInputStream(Configuration.getInputEncoding());
-        this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
+//        this.replayStream = new ReplayPrefixOneCharInputStream(Configuration.getEncoding());
+//        this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
     /**
@@ -59,83 +49,83 @@ public class SshTerminal
         setEchoEnabled(false);
     }
 
-    @Override
-    public int readVirtualKey(final InputStream in) throws IOException {
-        int c = readCharacter(in);
-
-        if (Key.valueOf(c) == DELETE) {
-            c = BACKSPACE.code;
-        }
-
-        UnixKey key = UnixKey.valueOf(c);
-
-        // in Unix terminals, arrow keys are represented by a sequence of 3 characters. E.g., the up arrow key yields 27, 91, 68
-        if (key == ARROW_START) {
-            // also the escape key is 27 thats why we read until we have something different than 27
-            // this is a bugfix, because otherwise pressing escape and than an arrow key was an undefined state
-            while (key == ARROW_START) {
-                c = readCharacter(in);
-                key = UnixKey.valueOf(c);
-            }
-
-            if (key == ARROW_PREFIX || key == O_PREFIX) {
-                c = readCharacter(in);
-                key = UnixKey.valueOf(c);
-
-                if (key == ARROW_UP) {
-                    return CTRL_P.code;
-                }
-                else if (key == ARROW_DOWN) {
-                    return CTRL_N.code;
-                }
-                else if (key == ARROW_LEFT) {
-                    return CTRL_B.code;
-                }
-                else if (key == ARROW_RIGHT) {
-                    return CTRL_F.code;
-                }
-                else if (key == HOME_CODE) {
-                    return CTRL_A.code;
-                }
-                else if (key == END_CODE) {
-                    return CTRL_E.code;
-                }
-                else if (key == DEL_THIRD) {
-                    readCharacter(in); // read 4th & ignore
-                    return DELETE.code;
-                }
-            }
-            else if (c == 'b') { // alt-b: go back a word
-                return CTRL_O.code; // PREV_WORD
-            }
-            else if (c == 'f') { // alt-f: go forward a word
-                return CTRL_T.code; // NEXT_WORD
-            }
-            else if (key == DEL) { // alt-backspace: delete previous word
-                return CTRL_W.code; // DELETE_PREV_WORD
-            }
-            else if (c == 'd') { // alt-d: delete next word
-                return CTRL_X.code; // DELETE_NEXT_WORD
-            }
-
-        }
-
-        // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
-        if (c > 128) {
-            // handle unicode characters longer than 2 bytes,
-            // thanks to Marc.Herbert@continuent.com
-            replayStream.setInput(c, in);
-            // replayReader = new InputStreamReader(replayStream, encoding);
-            c = replayReader.read();
-        }
-
-        return c;
-    }
+//    @Override
+//    public int readVirtualKey(final InputStream in) throws IOException {
+//        int c = readCharacter(in);
+//
+//        if (Key.valueOf(c) == DELETE) {
+//            c = BACKSPACE.code;
+//        }
+//
+//        UnixKey key = UnixKey.valueOf(c);
+//
+//        // in Unix terminals, arrow keys are represented by a sequence of 3 characters. E.g., the up arrow key yields 27, 91, 68
+//        if (key == ARROW_START) {
+//            // also the escape key is 27 thats why we read until we have something different than 27
+//            // this is a bugfix, because otherwise pressing escape and than an arrow key was an undefined state
+//            while (key == ARROW_START) {
+//                c = readCharacter(in);
+//                key = UnixKey.valueOf(c);
+//            }
+//
+//            if (key == ARROW_PREFIX || key == O_PREFIX) {
+//                c = readCharacter(in);
+//                key = UnixKey.valueOf(c);
+//
+//                if (key == ARROW_UP) {
+//                    return CTRL_P.code;
+//                }
+//                else if (key == ARROW_DOWN) {
+//                    return CTRL_N.code;
+//                }
+//                else if (key == ARROW_LEFT) {
+//                    return CTRL_B.code;
+//                }
+//                else if (key == ARROW_RIGHT) {
+//                    return CTRL_F.code;
+//                }
+//                else if (key == HOME_CODE) {
+//                    return CTRL_A.code;
+//                }
+//                else if (key == END_CODE) {
+//                    return CTRL_E.code;
+//                }
+//                else if (key == DEL_THIRD) {
+//                    readCharacter(in); // read 4th & ignore
+//                    return DELETE.code;
+//                }
+//            }
+//            else if (c == 'b') { // alt-b: go back a word
+//                return CTRL_O.code; // PREV_WORD
+//            }
+//            else if (c == 'f') { // alt-f: go forward a word
+//                return CTRL_T.code; // NEXT_WORD
+//            }
+//            else if (key == DEL) { // alt-backspace: delete previous word
+//                return CTRL_W.code; // DELETE_PREV_WORD
+//            }
+//            else if (c == 'd') { // alt-d: delete next word
+//                return CTRL_X.code; // DELETE_NEXT_WORD
+//            }
+//
+//        }
+//
+//        // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
+//        if (c > 128) {
+//            // handle unicode characters longer than 2 bytes,
+//            // thanks to Marc.Herbert@continuent.com
+//            replayStream.setInput(c, in);
+//            // replayReader = new InputStreamReader(replayStream, encoding);
+//            c = replayReader.read();
+//        }
+//
+//        return c;
+//    }
 
     /**
      * Unix keys.
      */
-    public static enum UnixKey
+    enum UnixKey
     {
         ARROW_START(27),
 

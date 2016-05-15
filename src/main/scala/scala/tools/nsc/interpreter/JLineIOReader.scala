@@ -3,16 +3,14 @@
  * @author Stepan Koltsov
  */
 
-package scala.tools.nsc
-package interpreter
+package scala.tools.nsc.interpreter
 
-import scala.tools.jline.SshTerminal
+import peak6.util.Helpers
+import _root_.jline.console.completer.{ArgumentCompleter,Completer}
 import scala.tools.jline.console.ConsoleReader
-import scala.tools.jline.console.completer._
-import session._
-import scala.collection.JavaConverters._
-import Completion._
-import scala.tools.nsc.io.Streamable.slurp
+import scala.tools.jline.SshTerminal
+import scala.tools.nsc.interpreter.Completion.{Candidates, ScalaCompleter}
+import scala.tools.nsc.interpreter.session.{History, NoHistory}
 
 /**
  *  Reads from the console using JLine.
@@ -24,12 +22,9 @@ class JLineIOReader(in: java.io.InputStream,
   val consoleReader = new JLineConsoleReader()
 
   lazy val completion = _completion
-  lazy val history: JLineHistory = JLineHistory()
-  lazy val keyBindings =
-    try KeyBinding parse slurp(term.getDefaultBindings)
-    catch { case _: Exception => Nil }
+  lazy val history: History = Helpers.JLineHistory()
 
-  private def term = consoleReader.getTerminal()
+  private def term = consoleReader.getTerminal
   def reset() = term.reset()
   def init()  = term.init()
 
@@ -43,14 +38,14 @@ class JLineIOReader(in: java.io.InputStream,
   }
 
   class JLineConsoleReader
-  extends ConsoleReader(in, out, null, new SshTerminal)
-  with ConsoleReaderHelper {
+  extends ConsoleReader(in, out, new SshTerminal)
+  with Helpers.ConsoleReaderHelper {
     // working around protected/trait/java insufficiencies.
     def goBack(num: Int): Unit = back(num)
     def readOneKey(prompt: String) = {
       this.print(prompt)
       this.flush()
-      this.readVirtualKey()
+      this.readCharacter()
     }
     def eraseLine() = consoleReader.resetPromptLine("", "", 0)
     def redrawLineAndFlush(): Unit = { flush() ; drawLine() ; flush() }
@@ -59,12 +54,13 @@ class JLineIOReader(in: java.io.InputStream,
     // A hook for running code after the repl is done initializing.
     //lazy val postInit: Unit = {
       this setBellEnabled false
-      if (history ne NoHistory)
-        this setHistory history
+      if (history.isInstanceOf[scala.tools.jline.console.history.History])
+        this setHistory history.asInstanceOf[scala.tools.jline.console.history.History]
 
       if (completion ne NoCompletion) {
-        val argCompletor: ArgumentCompleter =
-          new ArgumentCompleter(new JLineDelimiter, scalaToJline(completion.completer()))
+        val delimiter = new Helpers.JLineDelimiter
+        val completer: Completer = scalaToJline(completion.completer())
+        val argCompletor = new ArgumentCompleter(delimiter, completer) with scala.tools.jline.console.completer.Completer
         argCompletor setStrict false
 
         this addCompleter argCompletor

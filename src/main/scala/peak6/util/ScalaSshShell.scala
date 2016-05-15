@@ -28,9 +28,9 @@ import org.apache.sshd.server.auth.password.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
 
-import scala.concurrent.ops.spawn
+import scala.concurrent.Future
 import scala.reflect.Manifest
-import scala.tools.nsc.interpreter.TypeStrings
+import scala.tools.nsc.Properties
 
 class ScalaSshShell(val port: Int, val name: String,
                     val user: String, val passwd: String,
@@ -53,7 +53,7 @@ trait Shell {
   var bindings: Seq[(String, String, Any)] = IndexedSeq()
 
   def bind[T: Manifest](name: String, value: T) {
-    bindings :+= Tuple3(name, TypeStrings.fromValue(value), value)
+    bindings :+= Tuple3(name, Helpers.TypeStrings.fromValue(value), value)
   }
 
   lazy val sshd = {
@@ -144,8 +144,9 @@ trait Shell {
             pw.write("Connected to %s, starting repl...\n".format(name))
             pw.flush()
 
+            Properties.setProp("shell.prompt", name + "> ")
             val il = new scala.tools.nsc.interpreter.SshILoop(None, pw)
-            il.setPrompt(name + "> ")
+//            il.setPrompt(name + "> ")
             il.settings = new scala.tools.nsc.Settings()
             il.settings.embeddedDefaults(getClass.getClassLoader)
             il.settings.usejavacp.value = true
@@ -177,7 +178,7 @@ trait Shell {
               il.intp.quietRun(
                 """def exit = println("Use ctrl-D to exit shell.")""")
 
-              il.loop()
+              il.sshLoop()
             } catch {
               case e: Exception =>
                 logger.error("Unhandled exception:", e)
@@ -211,16 +212,12 @@ object ScalaSshShell {
                                  keysResourcePath=Some("/test.ssh.keys"))
     sshd.bind("pi", 3.1415926)
     sshd.bind("nums", Vector(1,2,3,4,5))
-    spawn {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    Future {
       sshd.start()
     }
     //new java.util.Scanner(System.in) nextLine()
     Thread.sleep(60000)
     sshd.stop()
   }
-
-//  def generateKeys(path: String) {
-//    val key = new SimpleGeneratorHostKeyProvider(path)
-//    key.loadKeys()
-//  }
 }
